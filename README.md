@@ -12,5 +12,5 @@ Nginx-latest:
 #####
 
 ```
-curl -e https://github.com/v0l/public/nginx-latest.sh | bash
+curl https://raw.githubusercontent.com/v0l/public/master/nginx-latest.sh | bash
 ```
