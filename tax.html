@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Tax Calculator</title>
+		<style>
+			html, body {
+				font-family: Arial;
+				padding: 0;
+				margin: 0;
+			}
+			.calcHeader {
+				background-color: #6464ff;
+				color: #eee;
+			}
+		</style>
+		<script>
+			function Tax(){
+				this.TaxCredits = 3300;
+				
+				this.USCBands = [
+					{
+						Name: "USC Rate (S)",
+						Value: 12012.0,
+						Rate: 0.01
+					},
+					{
+						Name: "USC Rate (M)",
+						Value: 6656.0,
+						Rate: 0.03
+					},
+					{
+						Name: "USC Rate (L)",
+						Value: 51376.0,
+						Rate: 0.055
+					},
+					{
+						Name: "USC Rate (XL)",
+						Value: 0.0,
+						Rate: 0.08
+					}
+				];
+				
+				this.PAYEBands = [
+					{
+						Name: "Lower Tax Band",
+						Value: 33800.0,
+						Rate: 0.2
+					},
+					{
+						Name: "Higher Tax Band",
+						Value: 0.0,
+						Rate: 0.4
+					}
+				];
+				this.PRSIBands = [
+					{
+						Name: "PRSI",
+						Value: 0.0,
+						Rate: 0.04
+					}
+				];
+			}
+			
+			Tax.prototype.ApplyAggregateBands = function(bands, wage){
+				var bx = 0.0;
+				var ret = {
+					Values: [],
+					Total: 0.0
+				};
+				
+				for(var x = 0; x < bands.length; x++){
+					var b = bands[x];
+					var rx = 0;
+
+					if(wage > bx + b.Value && b.Value !== 0.0){
+						rx = b.Value * b.Rate;
+					}else if(wage > bx) {
+						rx = (wage - bx) * b.Rate;
+					}
+								
+					ret.Values[x] = {
+						Name: b.Name,
+						Value: rx
+					};
+					
+					ret.Total += rx;
+					
+					bx += b.Value;
+				}
+				
+				return ret;
+			}
+			
+			Tax.prototype.GetUSC = function(wage){
+				return this.ApplyAggregateBands(this.USCBands, wage);
+			}
+			
+			Tax.prototype.GetPAYE = function(wage){
+				return this.ApplyAggregateBands(this.PAYEBands, wage);
+			}
+			
+			Tax.prototype.GetPRSI = function(wage){
+				return this.ApplyAggregateBands(this.PRSIBands, wage);
+			}
+		</script>
+	</head>
+	<body>
+		<table>
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Value</th>
+				</tr>
+			</thead>
+			<tbody id="data">
+				<tr>
+					<td>Pay Gross</td>
+					<td><input id="gross" type="input" oninput="calc(this.value)"/></td>
+				</tr>
+			</tbody>
+		</table>
+		<script>
+			var t = new Tax();
+			
+			function AddTableRow(name, value, st){
+				var ne = document.createElement("tr");
+				ne.className = value === null ? "calc calcHeader" : "calc";
+				
+				if(st !== undefined && st !== null){
+					for(var x in st){
+						ne.style[x] = st[x];
+					}
+				}
+
+				var nea = document.createElement("td");
+				nea.innerHTML = name;
+				ne.appendChild(nea);
+				
+				var neb = document.createElement("td");
+				neb.innerHTML = value !== null ? "€" + value : null;
+				ne.appendChild(neb);
+				
+				document.querySelector("#data").appendChild(ne);
+			}
+			
+			function AddValueRows(rows){
+				for(var x = 0; x < rows.length; x++){
+					AddTableRow(rows[x].Name, rows[x].Value);
+				}
+			}
+			
+			function calc(v){
+				//clear data rows from table
+				var orz = document.querySelectorAll(".calc");
+				for(var x=0;x<orz.length;x++){
+					var p = orz[x].parentElement;
+					p.removeChild(orz[x]);
+				}
+				
+				//calc usc
+				var usc = t.GetUSC(v);
+				AddTableRow("USC", null);
+				AddValueRows(usc.Values);
+				AddTableRow("USC Total", usc.Total, {
+					fontWeight: "bold"
+				});
+				
+				//calc paye
+				var paye = t.GetPAYE(v);
+				AddTableRow("PAYE", null);
+				AddValueRows(paye.Values);
+				AddTableRow("PAYE Total", paye.Total, {
+					fontWeight: "bold"
+				});
+				
+				//calc prsi
+				var prsi = t.GetPRSI(v);
+				AddTableRow("PRSI", null);
+				AddValueRows(prsi.Values);
+				AddTableRow("PRSI Total", prsi.Total, {
+					fontWeight: "bold"
+				});
+				
+				//calc deductions
+				AddTableRow("Deductions", null);
+				var deduc = usc.Total + (paye.Total - t.TaxCredits) + prsi.Total;
+				AddTableRow("Yearly", deduc);
+				AddTableRow("Monthly", deduc / 12.0);
+				
+				//calc net
+				AddTableRow("Net", null);
+				var net = v - usc.Total - (paye.Total - t.TaxCredits) - prsi.Total;
+				AddTableRow("Net Pay", net);
+				AddTableRow("Net Pay Monthly", net / 12.0, {
+					fontWeight: "bold"
+				});
+			}
+		</script>
+	</body>
+</html>
