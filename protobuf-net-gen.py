@@ -7,7 +7,7 @@ from time import gmtime, strftime
 
 class ProtoClassWriter:
 	def __init__(self, dir, namespace):
-		self.using = ['System', 'ProtoBuf']
+		self.using = ['System', 'ProtoBuf', 'System.Collections.Generic']
 		self.ns = namespace
 		self.dir = dir
 	
@@ -63,9 +63,9 @@ class ProtoClassWriter:
 			else:
 				self.outFile.write(("" if k == 0 else "\n\n") + "\t\t/// <summary>\n\t\t/// " + v.comments + "\n\t\t/// </summary>\n")
 				if v.required:
-					self.outFile.write("\t\t[ProtoMember(" + str(k+1) + ", Options = MemberSerializationOptions.Required)]\n\t\tpublic " + self.GetCSType(v.type) + " " + self.FormatCase(v.name) + " { get; set; }")
+					self.outFile.write("\t\t[ProtoMember(" + v.fieldId + ", Options = MemberSerializationOptions.Required)]\n\t\tpublic " + ("List<" if v.repeated else "") + self.GetCSType(v.type) + ("> " if v.repeated else " ") + self.FormatCase(v.name) + " { get; set; }")
 				else:
-					self.outFile.write("\t\t[ProtoMember(" + str(k+1) + ")]\n\t\tpublic " + self.GetCSType(v.type) + " " + self.FormatCase(v.name) + " { get; set; }")
+					self.outFile.write("\t\t[ProtoMember(" + v.fieldId + ")]\n\t\tpublic " + ("List<" if v.repeated else "") + self.GetCSType(v.type) + ("> " if v.repeated else " ") + self.FormatCase(v.name) + " { get; set; }")
 				
 		#write end of class
 		self.outFile.write("\n\t}")
@@ -74,11 +74,13 @@ class ProtoClassWriter:
 		self.outFile.write("\n}\n#endregion")
 
 class ProtoMemeber:
-	def __init__(self, type, name, req, comm):
+	def __init__(self, type, name, req, rep, fid, comm):
 		self.type = type
 		self.name = name
 		self.required = req
+		self.repeated = rep
 		self.comments = comm
+		self.fieldId = fid
 		
 class ProtoClass:
 	def __init__(self, name, namespace, isenum):
@@ -86,8 +88,8 @@ class ProtoClass:
 		self.name = name
 		self.isenum = isenum
 		
-	def AddMember(self, type, name, req, comm):
-		self.members.append(ProtoMemeber(type, name, req, comm))
+	def AddMember(self, type, name, req, rep, fid, comm):
+		self.members.append(ProtoMemeber(type, name, req, rep, fid, comm))
 		
 class ProtoParser:
 	def __init__(self, dir, ns):
@@ -112,18 +114,30 @@ class ProtoParser:
 					self.thisClass = None
 				elif self.thisClass != None:
 					ls = line.split(' ')
+					
+					#find a fieldId
+					fid = 0
+					nextTokenIsFieldId = False
+					for v in ls:
+						if(v == '=' and fid == 0):
+							nextTokenIsFieldId = True
+						elif(nextTokenIsFieldId):
+							fid = v[:-1] if v.find(';') > 0 else v
+							nextTokenIsFieldId = False
+
 					if self.thisClass.isenum and len(ls) > 1:
 						if not line.startswith("//"):
-							self.thisClass.AddMember(ls[2], ls[0], False, lcom)
+							self.thisClass.AddMember(ls[2], ls[0], False, (True if ls[0] == 'repeated' else False), fid, lcom)
 						elif line.startswith("//"):
 							lcom = line[2:].strip()
 					else:
 						if not line.startswith("//") and len(ls) > 3 and ls[0] in { 'repeated', 'optional', 'required' }:
-							self.thisClass.AddMember(ls[1], ls[2], (True if ls[0] == 'required' else False), lcom)
+							self.thisClass.AddMember(ls[1], ls[2], (True if ls[0] == 'required' else False), (True if ls[0] == 'repeated' else False), fid, lcom)
 							lcom = ""
 						elif line.startswith("//"):
 							lcom = line[2:].strip()
 			fin.close()
+			return
 
 args = sys.argv
 if len(args) != 3:
@@ -138,9 +152,14 @@ else:
 	pp = ProtoParser(outdir, args[2])
 	f = []
 
-	for (dirpath, dirnames, filenames) in os.walk('.'):
+	src = os.getcwd()
+	print "Getting proto files from " + src
+	
+	for (dirpath, dirnames, filenames) in os.walk(src):
 		f.extend(filenames)
 
-	for file in filenames:
+	print str(len(f)) + " files found."
+	
+	for file in f:
 		if file.endswith('.proto'):
 			pp.ParseFile(file)
