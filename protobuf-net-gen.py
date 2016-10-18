@@ -27,6 +27,7 @@ class ProtoClassWriter:
 			'string': 'string',
 			'int64': 'Int64',
 			'int32': 'Int32'
+			'bytes': 'byte[]'
 		}
 		
 		if type in types:
