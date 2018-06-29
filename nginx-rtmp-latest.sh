@@ -1,7 +1,7 @@
 #!/bin/bash
 
 apt-get update
-apt-get install build-essential libpcre3-dev libz-dev
+apt-get install build-essential libpcre3-dev libz-dev git
 
 OPENSSL_V="openssl-1.1.0h"
 NGINX_V="nginx-1.15.0"
