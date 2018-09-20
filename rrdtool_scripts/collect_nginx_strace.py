@@ -8,7 +8,7 @@ from subprocess import call, Popen, PIPE
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 while True:
-	nginx_pid = Popen('pgrep -P $(cat ~/.nginx/pid)', stdout=PIPE, shell=True)
+	nginx_pid = Popen('pgrep -P $(cat ~/.nginx/pid) | pase -s -d, -', stdout=PIPE, shell=True)
 	ln=0
 	proc = Popen(['strace', '-p', nginx_pid.stdout.read(), '-e', 'sendfile'], stdout=PIPE, stderr=PIPE)
 	for line in iter(proc.stderr.readline,''):
