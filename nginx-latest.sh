@@ -18,4 +18,5 @@ cd $NGINX_V
 make -j8
 make install
 
+rm -rf /usr/local/nginx/sbin/nginx
 ln /usr/local/nginx/sbin/nginx /usr/sbin/nginx
