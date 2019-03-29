@@ -1,7 +1,7 @@
 function FindProxyForURL(url, host){
 	var direct = dnsDomainIs(host, ".netflix.com")
 		|| dnsDomainIs(host, ".amazon.com")
-		|| dnsDomainIs(host, ".youtube.com")
+		|| dnsDomainIs(host, ".googlevideo.com")
 		|| isInNet(host, "192.168.2.0", "255.255.255.0") 
 		|| isInNet(host, "10.10.0.0", "255.255.255.252");
 	
