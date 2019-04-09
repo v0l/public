@@ -14,6 +14,14 @@ echo -e "Rust PID: $RUST_PROC"
 echo -e "Date is: $DOM"
 echo -e "Day of week is: $DOW\n"
 
+if [ -x websocat ]; then
+    echo "websocat found: $(~/websocat --version)"
+else
+    echo "Downloading websocat.."
+    wget -O ~/websocat https://github.com/vi/websocat/releases/download/v1.4.0/websocat_amd64-linux-static
+    chmod +x ~/websocat
+fi
+
 if [ $DOW -ne $WIPE_DAY ]; then
     echo "Today is not a wipe day.."
     exit
