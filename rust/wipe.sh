@@ -4,9 +4,10 @@ WIPE_DAY=4
 DOW=$(date +\%u)
 DOM=$(date +\%d)
 
-SERVER_IDENT="######################"
-RUST_SERVER_DIR="~/Steam/steamapps/common/rust_dedicated/server/"
-RUST_RCON_WS="ws://localhost:28016/###############"
+HOME_PATH="/home/steam"
+SERVER_IDENT="my_server"
+RUST_SERVER_DIR="$HOME_PATH/Steam/steamapps/common/rust_dedicated/server"
+RUST_RCON_WS="ws://localhost:27016/#######################"
 RUST_PROC=$(ps u | awk '$11 ~ /^\.\/RustDedicated/ {print $2}')
 
 echo -e "==== Running wipe script ====\n$(date)\n"
@@ -14,12 +15,14 @@ echo -e "Rust PID: $RUST_PROC"
 echo -e "Date is: $DOM"
 echo -e "Day of week is: $DOW\n"
 
-if [ -x websocat ]; then
-    echo "websocat found: $(~/websocat --version)"
+cd $HOME_PATH
+
+if [ -x $HOME_PATH/websocat ]; then
+    echo "websocat found: $($HOME_PATH/websocat --version)"
 else
     echo "Downloading websocat.."
-    wget -O ~/websocat https://github.com/vi/websocat/releases/download/v1.4.0/websocat_amd64-linux-static
-    chmod +x ~/websocat
+    wget -O $HOME_PATH/websocat https://github.com/vi/websocat/releases/download/v1.4.0/websocat_amd64-linux-static
+    chmod +x $HOME_PATH/websocat
 fi
 
 if [ $DOW -ne $WIPE_DAY ]; then
@@ -28,34 +31,40 @@ if [ $DOW -ne $WIPE_DAY ]; then
 fi
 
 UpdateRust() {
-    ~/steamcmd.sh +login anonymous +app_update 258550 +quit
+    $HOME_PATH/steamcmd.sh +login anonymous +app_update 258550 +quit
 }
 
 MakeNewSeed() {
-    echo $RANDOM > ~/.rust_seed
+    echo $RANDOM > $HOME_PATH/.rust_seed
 }
 
 BackupRust() {
-    cd $RUST_SERVER_DIR && tar cfjv "$SERVER_IDENT_$(date +'%Y%m%d_%H%M').tar.bz" "$_SERVER_IDENT/"
+    tar cfjv "$RUST_SERVER_DIR/$SERVER_IDENT_$(date +'%Y%m%d_%H%M').tar.bz" "$RUST_SERVER_DIR/$SERVER_IDENT/"
     echo "Backup created: $RUST_SERVER_DIR/$SERVER_IDENT_$(date +'%Y%m%d_%H%M').tar.bz"
 }
 
 StopRust() {
-    WX=5
+    if [ -z $RUST_PROC ]; then
+        echo -e "\t-Rust is not running, skipping.."
+        return 0
+    fi
+
+    WX=2
     while [ $WX -gt 0 ]; do
         echo -e "\t>> Server wipe will start in $WX mins.."
-        echo "{\"Identifier\":1,\"Message\":\"say Server wipe will start in $WX mins..\",\"Name\":\"WebRcon\"}" | websocat -E $RUST_RCON_WS
+        echo "{\"Identifier\":1,\"Message\":\"say Server wipe will start in $WX mins..\",\"Name\":\"WebRcon\"}" | $HOME_PATH/websocat -E $RUST_RCON_WS
         sleep 1m
         (( WX-- ))
     done
 
     echo -e "\t>> Server wipe starting.."
-    echo "{\"Identifier\":1,\"Message\":\"say Server wipe starting..\",\"Name\":\"WebRcon\"}" | websocat -E $RUST_RCON_WS
+    echo "{\"Identifier\":1,\"Message\":\"say Server wipe starting..\",\"Name\":\"WebRcon\"}" | $HOME_PATH/websocat -E $RUST_RCON_WS
     sleep 10
-    echo "{\"Identifier\":1,\"Message\":\"save\",\"Name\":\"WebRcon\"}" | websocat -E $RUST_RCON_WS
-    echo "{\"Identifier\":1,\"Message\":\"quit\",\"Name\":\"WebRcon\"}" | websocat -E $RUST_RCON_WS
+    echo "{\"Identifier\":1,\"Message\":\"save\",\"Name\":\"WebRcon\"}" | $HOME_PATH/websocat -E $RUST_RCON_WS
+    echo "{\"Identifier\":1,\"Message\":\"quit\",\"Name\":\"WebRcon\"}" | $HOME_PATH/websocat -E $RUST_RCON_WS
 
-    wait $RUST_PROC
+    echo "\t-Waiting for rust to exit.."
+    tail --pid=$RUST_PROC -f /dev/null
 }
 
 DeleteOldMaps() {
@@ -63,39 +72,39 @@ DeleteOldMaps() {
 }
 
 StartRustDedicated() {
-    echo "$(date +%b\ %d) ($(date +%H%p\ %Z))" > ~/.rust_wipe_txt
-    screen -dmS rust ~/rustasia.sh
+    echo "$(date +%b\ %d) ($(date +%H%p\ %Z))" > $HOME_PATH/.rust_wipe_txt
+    #screen -dmS rust $HOME_PATH/rustasia.sh
 }
 
-if [ $DOM -gt 8 -a $DOM -lt 15 ]; then
+if [ $DOM -gt 14 -a $DOM -lt 22 ]; then
     echo "== Running partial wipe =="
-    echo -e "\tCreating backup.." && BackupRust
-    echo -e "\tUpdating RustDedicated.." && UpdateRust
-    echo -e "\tSet new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\tStopping RustDedicated.." && StopRust
+    echo -e "\t-Creating backup.." && BackupRust
+    echo -e "\t-Updating RustDedicated.." && UpdateRust
+    echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
+    echo -e "\t-Stopping RustDedicated.." && StopRust
 
-    echo -e "\tWiping BP's.."
+    echo -e "\t-Wiping BP's.."
     mv $RUST_SERVER_DIR/$SERVER_IDENT/player.blueprints.db ~/rust-bp-partial-wipe
     cd ~/rust-bp-partial-wipe && dotnet run --project rust_wipe
     mv ~/rust-bp-partial-wipe $RUST_SERVER_DIR/$SERVER_IDENT/
 
-    echo -e "\tDeleting old maps.." && DeleteOldMaps
-    echo -e "\tDone!..\n\tStarting RustDedicated.." && StartRustDedicated
+    echo -e "\t-Deleting old maps.." && DeleteOldMaps
+    echo -e "\t-Done!..\n\t-Starting RustDedicated.." && StartRustDedicated
 elif [ $DOM -lt 8 ]; then
     echo "== Running full wipe =="
-    echo -e "\tCreating backup.." && BackupRust
-    echo -e "\tUpdating RustDedicated.." && UpdateRust
-    echo -e "\tSet new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\tStopping RustDedicated.." && StopRust
-    echo -e "\tWiping BP's.." && rm -rf $RUST_SERVER_DIR/$SERVER_IDENT/*.db
-    echo -e "\tDeleting old maps.." && DeleteOldMaps
-    echo -e "\tDone!..\n\tStarting RustDedicated.." && StartRustDedicated
+    echo -e "\t-Creating backup.." && BackupRust
+    echo -e "\t-Updating RustDedicated.." && UpdateRust
+    echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
+    echo -e "\t-Stopping RustDedicated.." && StopRust
+    echo -e "\t-Wiping BP's.." && rm -rf $RUST_SERVER_DIR/$SERVER_IDENT/*.db
+    echo -e "\t-Deleting old maps.." && DeleteOldMaps
+    echo -e "\t-Done!..\n\tStarting RustDedicated.." && StartRustDedicated
 else
     echo "== Running map wipe =="
-    echo -e "\tCreating backup.." && BackupRust
-    echo -e "\tUpdating RustDedicated.." && UpdateRust
-    echo -e "\tSet new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\tStopping RustDedicated.." && StopRust
-    echo -e "\tDeleting old maps.." && DeleteOldMaps
-    echo -e "\tDone!..\n\tStarting RustDedicated.." && StartRustDedicated
+    echo -e "\t-Creating backup.." && BackupRust
+    echo -e "\t-Updating RustDedicated.." && UpdateRust
+    echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
+    echo -e "\t-Stopping RustDedicated.." && StopRust
+    echo -e "\t-Deleting old maps.." && DeleteOldMaps
+    echo -e "\t-Done!..\n\t-Starting RustDedicated.." && StartRustDedicated
 fi
