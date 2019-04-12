@@ -72,7 +72,7 @@ StopRust() {
     SendRustRCON "save"
     SendRustRCON "quit"
 
-    echo "\t-Waiting for rust to exit.."
+    echo -e "\t-Waiting for rust to exit.."
     tail --pid=$RUST_PROC -f /dev/null
 }
 
@@ -85,6 +85,7 @@ SetTitle() {
 }
 StartRustDedicated() {
     #screen -dmS rust $HOME_PATH/rustasia.sh
+    echo "...."
 }
 
 if [ $DOM -gt 14 -a $DOM -lt 22 ]; then
