@@ -5,11 +5,11 @@ DOW=$(date +\%u)
 DOM=$(date +\%d)
 
 HOME_PATH="/home/steam"
-SERVER_IDENT="my_server_identity"
+SERVER_IDENT="sg.rustasia.com"
 RUST_SERVER_DIR="$HOME_PATH/Steam/steamapps/common/rust_dedicated/server"
-RUST_RCON_WS="ws://localhost:28016/WEB_RCON_PASSWORD_HERE"
+RUST_RCON_WS="ws://localhost:28016/password"
 RUST_PROC=$(ps u | awk '$11 ~ /^\.\/RustDedicated/ {print $2}')
-DISCORD_WEBHOOK="MY_WEBHOOK_HERE"
+DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/XXX"
 
 echo -e "==== Running wipe script ====\n$(date)\n"
 echo -e "Rust PID: $RUST_PROC"
@@ -22,7 +22,7 @@ if [ -x $HOME_PATH/websocat ]; then
     echo "websocat found: $($HOME_PATH/websocat --version)"
 else
     echo "Downloading websocat.."
-    wget -O $HOME_PATH/websocat https://github.com/vi/websocat/releases/download/v1.4.0/websocat_amd64-linux-static
+    wget -O $HOME_PATH/websocat https://github.com/vi/websocat/releases/download/v1.5.0/websocat_amd64-linux-static
     chmod +x $HOME_PATH/websocat
 fi
 
@@ -32,7 +32,7 @@ if [ $DOW -ne $WIPE_DAY ]; then
 fi
 
 SendDiscordMsg() {
-    curl -X POST --data "{\"content\":\"$1\"}" $DISCORD_WEBHOOK
+    curl -X POST --data "{\"content\":\"$1\"}" -H "Content-Type: application/json" $DISCORD_WEBHOOK
 }
 
 UpdateRust() {
@@ -60,14 +60,14 @@ StopRust() {
 
     WX=5
     while [ $WX -gt 0 ]; do
-        echo -e "\t>> Server wipe will start in $WX mins.."
-        SendRustRCON "say Server wipe will start in $WX mins.."
+        echo -e "\t>> Server $1 wipe will start in $WX mins.."
+        SendRustRCON "say Server $1 wipe will start in $WX mins.."
         sleep 1m
         (( WX-- ))
     done
 
-    echo -e "\t>> Server wipe starting.."
-    SendRustRCON "say Server wipe starting.."
+    echo -e "\t>> Server $1 wipe starting.."
+    SendRustRCON "say Server $1 wipe starting.."
     sleep 10
     SendRustRCON "save"
     SendRustRCON "quit"
@@ -77,7 +77,8 @@ StopRust() {
 }
 
 DeleteOldMaps() {
-    rm -rf "$RUST_SERVER_DIR/$SERVER_IDENT/*.sav" "$RUST_SERVER_DIR/$SERVER_IDENT/*.map"
+    rm -rf $RUST_SERVER_DIR/$SERVER_IDENT/*.sav 
+    rm -rf $RUST_SERVER_DIR/$SERVER_IDENT/*.map
 }
 
 SetTitle() {
@@ -93,33 +94,33 @@ if [ $DOM -gt 14 -a $DOM -lt 22 ]; then
     echo -e "\t-Creating backup.." && BackupRust
     echo -e "\t-Updating RustDedicated.." && UpdateRust
     echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust
+    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust "partial"
 
     echo -e "\t-Wiping BP's.."
-    mv $RUST_SERVER_DIR/$SERVER_IDENT/player.blueprints.db ~/rust-bp-partial-wipe
+    mv $RUST_SERVER_DIR/$SERVER_IDENT/player.blueprints.3.db ~/rust-bp-partial-wipe/player.blueprints.3.db
     cd ~/rust-bp-partial-wipe && dotnet run --project rust_wipe
-    mv ~/rust-bp-partial-wipe $RUST_SERVER_DIR/$SERVER_IDENT/
+    mv ~/rust-bp-partial-wipe/player.blueprints.3.db $RUST_SERVER_DIR/$SERVER_IDENT/player.blueprints.3.db
 
     echo -e "\t-Deleting old maps.." && DeleteOldMaps
     echo -e "\t-Done!..\n\t-Starting RustDedicated.." && StartRustDedicated
-    SendDiscordMsg "@here Server wiped!" 
-elif [ $DOM -lt 8 ]; then
+    SendDiscordMsg "@everyone Server map + T3 BP\'s wiped!" 
+elif [ $DOM -lt 9 -a $DOM -ne 1 ]; then
     echo "== Running full wipe =="
     echo -e "\t-Creating backup.." && BackupRust
     echo -e "\t-Updating RustDedicated.." && UpdateRust
     echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust
+    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust "full"
     echo -e "\t-Wiping BP's.." && rm -rf $RUST_SERVER_DIR/$SERVER_IDENT/*.db
     echo -e "\t-Deleting old maps.." && DeleteOldMaps
     echo -e "\t-Done!..\n\tStarting RustDedicated.." && StartRustDedicated
-    SendDiscordMsg "@here Server wiped!"
+    SendDiscordMsg "@everyone FULL Server wiped!"
 else
     echo "== Running map wipe =="
     echo -e "\t-Creating backup.." && BackupRust
     echo -e "\t-Updating RustDedicated.." && UpdateRust
     echo -e "\t-Set new seed.." && MakeNewSeed && echo "New seed: $(cat ~/.rust_seed)"
-    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust
+    echo -e "\t-Stopping RustDedicated.." && SetTitle && StopRust "map"
     echo -e "\t-Deleting old maps.." && DeleteOldMaps
     echo -e "\t-Done!..\n\t-Starting RustDedicated.." && StartRustDedicated
-    SendDiscordMsg "@here Server wiped!"
+    SendDiscordMsg "@everyone Server map wiped!"
 fi
