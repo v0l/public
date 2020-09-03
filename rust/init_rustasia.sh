@@ -5,6 +5,8 @@ SUSR="steam"
 SHOME="/home/$SUSR"
 TITLE="MyRustServer"
 IDENT="rust_server"
+WORLD_SIZE=3500
+MAX_PLAYERS=200
 RCON_PASSWORD="password"
 WEBHOOK="https://discordapp.com/api/webhooks/XXX"
 REPORT_PRIVATE_WEBOOK="https://discordapp.com/api/webhooks/XXX"
@@ -12,7 +14,9 @@ REPORT_PUBLIC_WEBHOOK="https://discordapp.com/api/webhooks/XXX"
 
 TZ="Asia/Singapore"
 
-wget https://packages.microsoft.com/config/ubuntu/19.10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+UBUNTU_RELEASE=$(lsb_release -r | cut -d$'\t' -f2)
+
+wget https://packages.microsoft.com/config/ubuntu/$UBUNTU_RELEASE/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 dpkg -i packages-microsoft-prod.deb
 
 apt update
@@ -45,8 +49,8 @@ cd ~/Steam/steamapps/common/rust_dedicated && ./RustDedicated -batchmode \\
 +server.seed \$(cat ~/.rust_seed) \\
 +rcon.web 1 \\
 +rcon.port 28016 \\
-+server.worldsize 3500 \\
-+server.maxplayers 200 \\
++server.worldsize $WORLD_SIZE \\
++server.maxplayers $MAX_PLAYERS \\
 +server.hostname "$TITLE ~Wiped \$(cat ~/.rust_wipe_txt)" \\
 +server.description "https://discord.rustasia.com" \\
 +server.url "https://discord.rustasia.com" \\
