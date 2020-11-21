@@ -20,7 +20,7 @@ wget https://packages.microsoft.com/config/ubuntu/$UBUNTU_RELEASE/packages-micro
 dpkg -i packages-microsoft-prod.deb
 
 apt update
-apt install -y lib32gcc1 curl wget htop bmon screen apt-transport-https dotnet-runtime-3.1 p7zip netdata
+apt install -y lib32gcc1 curl wget htop bmon screen apt-transport-https dotnet-runtime-3.1 p7zip iptables-persistent
 
 useradd -m -r -s /bin/bash $SUSR
 
