@@ -16,7 +16,7 @@ apt-get update && apt-get install -y \
   docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs) \
   flannel
   
-cat <<EOF | tee /etc/docker/daemon.json
+cat <<EOF > /etc/docker/daemon.json
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
@@ -53,6 +53,8 @@ systemctl restart kubelet
 echo -e "export KUBECONFIG=/etc/kubernetes/admin.conf" >> /root/.profile
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
+swapoff -a
+systemctl restart docker
 
 #master
 #kubeadm init --pod-network-cidr=10.244.0.0/16
